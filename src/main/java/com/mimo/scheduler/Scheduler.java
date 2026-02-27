@@ -3,19 +3,98 @@ package com.mimo.scheduler;
 import com.mimo.scheduler.aftertask.AfterTaskExecutor;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.concurrent.*;
 
 public class Scheduler {
     private final ScheduledExecutorService executor;
     private final AfterTaskExecutor afterTaskExecutor;
+    final ArrayList<Class<?>> classes;
 
 
     Scheduler(int numThreads) {
         executor =  Executors.newScheduledThreadPool(2);
         afterTaskExecutor = new AfterTaskExecutor();
+        classes = new ArrayList<>();
     }
 
+
+    /**
+     * Sets the {@code classes} attribute of the {@code Scheduler} class.
+     **/
+    public void setCheckingClasses(Class<?> clazzes) {
+        clearCheckingClasses();
+        this.classes.add(clazzes);
+    }
+
+
+    /**
+     * Returns an {@link ArrayList} with {@link Class} instances inside from
+     * the {@code classes} attribute of the {@code Scheduler} class.
+     *
+     * @return the {@code classes} attribute from the {@code Scheduler}
+     **/
+    public ArrayList<Class<?>> getCheckingClasses() {
+        return this.classes;
+    }
+
+
+    /**
+     * Adds {@link Class} instances to the {@code classes} attribute of the {@code Scheduler} class.
+     **/
+    public void addCheckingClass(Class<?> clazz) {
+        this.classes.add(clazz);
+    }
+
+
+    /**
+     * Clears the {@code classes} attribute of the {@code Scheduler} class.
+     * */
+    public void clearCheckingClasses(){
+        this.classes.clear();
+    }
+
+
+    /**
+     * Returns an int for the size of the {@code classes} attribute of the {@code Scheduler} class.
+     *
+     * @return the size of the {@code classes} attribute
+     * */
+    public int getCheckingClassesSize() {
+        return this.classes.size();
+    }
+
+
+    /**
+     * Returns the {@link ScheduledExecutorService} from the {@code Scheduler} class.
+     *
+     * @return a {@link ScheduledExecutorService} instance
+     **/
+    public ScheduledExecutorService getExecutor() {
+        return this.executor;
+    }
+
+
+    /**
+     * Returns the {@link AfterTaskExecutor} from the {@code Scheduler} class.
+     *
+     * @return a {@link AfterTaskExecutor} instance
+     **/
+    public AfterTaskExecutor getAfterTaskExecutor() {
+        return this.afterTaskExecutor;
+    }
+
+
+    /**
+     * Returns {@link Class} objects that are all annotated with {@link com.mimo.scheduler.aftertask.AfterTask}
+     *
+     * @return an {@link ArrayList} instance with {@link Class} instances inside
+     **/
+    public ArrayList<Method> getAllAnnotatedMethods() {
+        return afterTaskExecutor.getAllMethods(getCheckingClasses());
+    }
 
 
     /**
@@ -27,6 +106,7 @@ public class Scheduler {
         return (CompletableFuture<?>) executor.submit(task);
     }
 
+
     /**
      * Schedules a {@link Runnable} to execute immediately.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -35,9 +115,10 @@ public class Scheduler {
      * @param eventName the name of the event fired after completion
      * */
     public CompletableFuture<?> run(Runnable task, String eventName) throws InvocationTargetException, IllegalAccessException {
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
         return (CompletableFuture<?>) executor.submit(task);
     }
+
 
     /**
      * Schedules a {@link Callable} to execute immediately and returns a {@link CompletableFuture}.
@@ -50,6 +131,7 @@ public class Scheduler {
         return (CompletableFuture<?>) executor.submit(task);
     }
 
+
     /**
      * Schedules a {@link Callable} to execute immediately and returns a {@link CompletableFuture}.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -60,7 +142,7 @@ public class Scheduler {
      * @return a {@link CompletableFuture} that completes when the task finishes
      * */
     public CompletableFuture<?> run(Callable<?> task, String eventName) throws InvocationTargetException, IllegalAccessException {
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
         return (CompletableFuture<?>) executor.submit(task);
     }
 
@@ -76,6 +158,7 @@ public class Scheduler {
         return executor.schedule(task, delay, unit);
     }
 
+
     /**
      * Schedules a {@link Runnable} to execute after the {@code delay} in the given {@link TimeUnit}.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -88,9 +171,10 @@ public class Scheduler {
     public ScheduledFuture<?> scheduleWithFixedDelay(long delay, TimeUnit unit, Runnable task, String eventName) throws InterruptedException, InvocationTargetException, IllegalAccessException {
         ScheduledFuture<?> scheduledFuture = executor.schedule(task, delay, unit);
         Thread.sleep(getIntermission(scheduledFuture));
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
         return scheduledFuture;
     }
+
 
     /**
      * Schedules a {@link Callable} to execute after the {@code delay} in the given {@link TimeUnit} and returns a {@link ScheduledFuture}.
@@ -104,6 +188,7 @@ public class Scheduler {
     public <T> ScheduledFuture<T> scheduleWithFixedDelay(long delay, TimeUnit unit, Callable<T> task) {
         return executor.schedule(task, delay, unit);
     }
+
 
     /**
      * Schedules a {@link Callable} to execute after the {@code delay} in the given {@link TimeUnit} and returns a {@link ScheduledFuture}.
@@ -119,10 +204,9 @@ public class Scheduler {
     public <T> ScheduledFuture<T> scheduleWithFixedDelay(long delay, TimeUnit unit, Callable<T> task, String eventName) throws InvocationTargetException, IllegalAccessException, InterruptedException {
         ScheduledFuture<T> scheduledFuture = executor.schedule(task, delay, unit);
         Thread.sleep(getIntermission(scheduledFuture));
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
         return scheduledFuture;
     }
-
 
 
     /**
@@ -145,6 +229,7 @@ public class Scheduler {
         return null;
     }
 
+
     /**
      * Schedules a {@link Runnable} to execute if the given {@link LocalDateTime} was before now.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -162,12 +247,11 @@ public class Scheduler {
                     throw new RuntimeException(e);
                 }
             }
-            afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+            afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
             return (CompletableFuture<?>) executor.submit(task);
         }
         return null;
     }
-
 
 
     /**
@@ -192,6 +276,7 @@ public class Scheduler {
         return null;
     }
 
+
     /**
      * Schedules a {@link Callable} to execute if the given {@link LocalDateTime} was before now and returns a {@link CompletableFuture}.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -211,7 +296,7 @@ public class Scheduler {
                     throw new RuntimeException(e);
                 }
             }
-            afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+            afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
             return (CompletableFuture<T>) executor.submit(task);
         }
         return null;
@@ -234,6 +319,7 @@ public class Scheduler {
         }
     }
 
+
     /**
      * Schedules a {@link Runnable} to execute {@code numRepeats} amount of times with each having their own {@code delay} using the given {@code unit}.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}
@@ -250,9 +336,8 @@ public class Scheduler {
             ScheduledFuture<?> scheduledFuture = scheduleWithFixedDelay(delay, unit, task);
             Thread.sleep(getIntermission(scheduledFuture));
         }
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
-
 
 
     /**
@@ -271,6 +356,7 @@ public class Scheduler {
         }
     }
 
+
     /**
      * Schedules a {@link Runnable} to execute {@code numRepeats} amount of times with each having their own {@code delay} using the given {@code unit}.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}.
@@ -287,7 +373,7 @@ public class Scheduler {
             ScheduledFuture<?> scheduledFuture = scheduleWithFixedDelay(delay, unit, task);
             Thread.sleep(getIntermission(scheduledFuture));
         }
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
 
 
@@ -300,6 +386,7 @@ public class Scheduler {
         scheduledFuture.cancel(true);
     }
 
+
     /**
      * Deletes a {@link ScheduledFuture}. When the {@link ScheduledFuture} is already running it will also try to stop it from running.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}.
@@ -309,8 +396,9 @@ public class Scheduler {
      * */
     public void delete(ScheduledFuture<?> scheduledFuture, String eventName) throws InvocationTargetException, IllegalAccessException {
         scheduledFuture.cancel(true);
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
+
 
     /**
      * Deletes a {@link CompletableFuture}. When the {@link CompletableFuture} is already running it will also try to stop it from running.
@@ -321,6 +409,7 @@ public class Scheduler {
         completableFuture.cancel(true);
     }
 
+
     /**
      * Deletes a {@link CompletableFuture}. When the {@link CompletableFuture} is already running it will also try to stop it from running.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}.
@@ -330,7 +419,7 @@ public class Scheduler {
      * */
     public void delete(CompletableFuture<?> completableFuture, String eventName) throws InvocationTargetException, IllegalAccessException {
         completableFuture.cancel(true);
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
 
 
@@ -345,6 +434,7 @@ public class Scheduler {
         }
     }
 
+
     /**
      * Deletes all {@link ScheduledFuture} instances. When the {@link ScheduledFuture} instances are already running it will also try to stop them from running.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}.
@@ -356,7 +446,7 @@ public class Scheduler {
         for (ScheduledFuture<?> scheduledFuture : scheduledFutures) {
             delete(scheduledFuture);
         }
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
 
 
@@ -371,6 +461,7 @@ public class Scheduler {
         }
     }
 
+
     /**
      * Deletes all {@link CompletableFuture} instances. When the {@link CompletableFuture} instances are already running it will also try to stop them from running.
      * Additionally, this also invokes every static method with the {@link com.mimo.scheduler.aftertask.AfterTask} annotation and the given {@code eventName}.
@@ -382,7 +473,7 @@ public class Scheduler {
         for (CompletableFuture<?> completableFuture : completableFutures) {
             delete(completableFuture);
         }
-        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName));
+        afterTaskExecutor.invokeMethods(afterTaskExecutor.getSpecificMethods(eventName, getCheckingClasses()));
     }
 
 
@@ -411,6 +502,7 @@ public class Scheduler {
             return 0;
         }
     }
+
 
     /**
      * Shuts down the executor and returns a {@code 1} if it successfully shut down immediately and returns a {@code 0} if not.

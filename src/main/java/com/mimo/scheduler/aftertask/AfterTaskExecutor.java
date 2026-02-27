@@ -4,10 +4,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.List;
 
 public class AfterTaskExecutor {
 
-    public ArrayList<Method> getSpecificMethods(String eventName, Class<?>... classes) {
+    public ArrayList<Method> getSpecificMethods(String eventName, ArrayList<Class<?>> classes) {
         ArrayList<Method> methods = new ArrayList<>();
         for (Class<?> clazz : classes) {
             for(Method method : clazz.getDeclaredMethods()){
@@ -21,7 +22,7 @@ public class AfterTaskExecutor {
         return methods;
     }
 
-    public ArrayList<Method> getAllMethods(Class<?>... classes) {
+    public ArrayList<Method> getAllMethods(List<Class<?>> classes) {
         ArrayList<Method> methods = new ArrayList<>();
         for (Class<?> clazz : classes) {
             for(Method method : clazz.getDeclaredMethods()){
