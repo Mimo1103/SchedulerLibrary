@@ -1,4 +1,6 @@
-package com.mimo.scheduler.aftertask;
+package com.mimo.scheduler.internal;
+
+import com.mimo.scheduler.aftertask.AfterTask;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

@@ -1,6 +1,6 @@
 package com.mimo.scheduler;
 
-import com.mimo.scheduler.aftertask.AfterTaskExecutor;
+import com.mimo.scheduler.internal.AfterTaskExecutor;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -491,6 +491,7 @@ public class Scheduler {
 
     /**
      * Shuts down the executor immediately and returns a {@code 1} if it sucessfully shut down immediately and returns a {@code 0} if not.
+     * Shutting the executor down immediately also stops any running tasks at the moment from the executor.
      *
      * @return {@code 1} if shutdown was immediately, {@code 0} otherwise
      * */
@@ -506,6 +507,7 @@ public class Scheduler {
 
     /**
      * Shuts down the executor and returns a {@code 1} if it successfully shut down immediately and returns a {@code 0} if not.
+     * Shutting the executor down lets any running task get completed first but does not accept any new tasks.
      *
      * @return {@code 1} if shutdown was immediately, {@code 0} otherwise
      * */
